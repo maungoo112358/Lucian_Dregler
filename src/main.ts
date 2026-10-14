@@ -94,6 +94,9 @@ let isDragging = false;
 let prevX = 0;
 let prevY = 0;
 const speed = 0.01;
+let yaw = 0;
+let pitch = 0;
+const PITCH_LIMIT = Math.PI / 2;
 
 // let hoveredCube: THREE.Mesh | null = null;
 let turnCubie: THREE.Mesh | null = null;
@@ -102,9 +105,6 @@ let turnStartY = 0;
 const turnPoint = new THREE.Vector3();
 const turnNormal = new THREE.Vector3();
 const DRAG_THRESHOLD = 30;
-
-const X_AXIS = new THREE.Vector3(1, 0, 0);
-const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 function screenDirection(localDir: THREE.Vector3): THREE.Vector2{
   const worldDir = localDir.clone().transformDirection(group.matrixWorld);
@@ -226,8 +226,9 @@ window.addEventListener('pointermove', (event: PointerEvent): void => {
    prevX = event.clientX;
    prevY = event.clientY;
 
-   group.rotateOnWorldAxis(Y_AXIS, dx * speed);
-   group.rotateOnWorldAxis(X_AXIS, dy * speed);
+  yaw += dx * speed;
+  pitch = THREE.MathUtils.clamp(pitch + dy * speed, -PITCH_LIMIT, PITCH_LIMIT);
+  group.rotation.set(pitch, yaw, 0);
 });
 
 window.addEventListener('pointerup', (): void => {
@@ -240,14 +241,16 @@ window.addEventListener('blur', (): void => {
   turnCubie = null;
 });
 
+let cubeScale = 1;
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 2;
+
 renderer.domElement.addEventListener('wheel', (event: WheelEvent): void =>{
   event.preventDefault(); // stop the page from scrolling
 
-  if(event.deltaY < 0){
-    console.log('Scroll up');
-  }else if(event.deltaY > 0){
-    console.log('Scroll down');
-  }
+  const factor = event.deltaY < 0 ? 1.1 : 1/ 1.1;
+  cubeScale = THREE.MathUtils.clamp(cubeScale * factor, MIN_SCALE, MAX_SCALE);
+  group.scale.setScalar(cubeScale);
 },{passive: false}); //required, or preventDefault() is ignored.
 
 renderer.setAnimationLoop((time) => {
